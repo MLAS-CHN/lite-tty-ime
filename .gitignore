@@ -1,0 +1,23 @@
+# 构建产物
+mini-tty-ime
+lite-tty-ime
+*.o
+*.deb
+
+# 运行时 / 本地
+*.freq
+*.log
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+
+# 临时
+*.tmp
+*.swp
+*~
