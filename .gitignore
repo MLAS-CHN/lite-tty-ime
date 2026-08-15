@@ -1,0 +1,15 @@
+# 构建产物
+lite-tty-ime
+
+# 日志
+*.log
+
+# mmap 词库缓存
+data/cache/
+
+# 崩溃转储
+core.*
+
+# 编辑器
+*.swp
+*~
