@@ -50,7 +50,10 @@ inline void render_to_real_terminal(const VirtualScreen& screen, int term_rows, 
     if (c < 1) c = 1;
     if (r > term_rows - 1) r = term_rows > 1 ? (term_rows - 1) : 1;
     if (c > term_cols) c = term_cols > 0 ? term_cols : 1;
-    out += "\033[?7h";
+    // 渲染期间强制关闭 autowrap（每行绝对定位），结尾按虚拟屏幕的
+    // autowrap 状态恢复，避免子程序关闭 autowrap 后被强制打开导致
+    // 行尾写入行为不一致（真实终端 wrap、虚拟屏幕不 wrap）。
+    out += screen.autowrap() ? "\033[?7h" : "\033[?7l";
     out += "\033[?25l";
     out += "\033[";
     out += std::to_string(r);

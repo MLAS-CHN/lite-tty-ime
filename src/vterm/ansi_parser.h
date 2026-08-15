@@ -388,19 +388,10 @@ private:
             return;
         }
         if (final == 'n' && !is_private) {
-            int p0 = param_or_default(params, 0, 0);
-            if (p0 == 5) {
-                const char* ok = "\033[0n";
-                if (master_fd_ >= 0) write(master_fd_, ok, (size_t)strlen(ok));
-                return;
-            }
-            if (p0 == 6) {
-                int r = screen_.cursor_row() + 1;
-                int c = screen_.cursor_col() + 1;
-                std::string resp = "\033[" + std::to_string(r) + ";" + std::to_string(c) + "R";
-                if (master_fd_ >= 0) write(master_fd_, resp.c_str(), resp.size());
-                return;
-            }
+            // DSR（设备状态报告 / 光标位置查询）：不响应。
+            // 响应会写回子程序输入流，干扰 tmux 等终端模拟器的状态机
+            //（与 DA 同理）。客户端无响应时按默认状态继续。
+            return;
         }
         if ((final == 'h' || final == 'l') && is_private) {
             for (int p : params) {
