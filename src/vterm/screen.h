@@ -208,7 +208,9 @@ public:
     void put_char(char32_t ch) {
         if (rows_ <= 0 || cols_ <= 0) return;
         if (ch == U'\n') {
-            cur_c_ = 0;
+            // LF：只换行，列不变（xterm 语义）。pty 的 ONLCR 通常把 \n
+            // 转成 \r\n（\r 负责归零列），但 tmux 等关闭 ONLCR 时会收到
+            // 裸 \n——此时若把列归 0，后续内容会从行首开始（错位）。
             index();
             wrap_pending_ = false;
             return;
@@ -359,7 +361,7 @@ public:
 
     void erase_in_display(int mode) {
         if (mode == 2) {
-            clear_all();
+            erase_display_all();
             return;
         }
         if (mode == 0) {
@@ -553,11 +555,16 @@ public:
     void save_cursor() {
         saved_r_ = cur_r_;
         saved_c_ = cur_c_;
+        saved_wrap_pending_ = wrap_pending_;
     }
 
     void restore_cursor() {
         cur_r_ = saved_r_;
         cur_c_ = saved_c_;
+        // 恢复 wrap pending 状态：行尾写满字符后（wrap_pending=true）若用
+        // \033[s/\033[u 保存恢复光标，残留的 pending 会让下一个字符误触发
+        // next_line，内容从下一行第 0 列开始（表现为内容左移到行首）。
+        wrap_pending_ = saved_wrap_pending_;
         if (cur_r_ < 0) cur_r_ = 0;
         if (cur_c_ < 0) cur_c_ = 0;
         if (cur_r_ >= rows_) cur_r_ = rows_ - 1;
@@ -724,6 +731,11 @@ private:
         wrap_pending_ = false;
     }
 
+    // ED（清屏）只清除内容，不动光标位置（与真实终端一致）。
+    void erase_display_all() {
+        for (auto& cell : cells_) set_cell_blank(cell);
+    }
+
     void clear_wide_at(int r, int c) {
         if (r < 0 || r >= rows_ || c < 0 || c >= cols_) return;
         Cell& cell = cells_[(size_t)r * (size_t)cols_ + (size_t)c];
@@ -773,6 +785,7 @@ private:
     int cur_c_ = 0;
     int saved_r_ = 0;
     int saved_c_ = 0;
+    bool saved_wrap_pending_ = false;
     int scroll_top_ = 0;
     int scroll_bottom_ = 0;
     std::vector<Cell> cells_{};

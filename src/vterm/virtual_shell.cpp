@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <cstring>
 #include <cstdlib>
+#include <fcntl.h>
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -31,6 +32,7 @@ static int g_rows = 0;
 static int g_cols = 0;
 static bool g_app_cursor_mode = false;
 static bool g_app_keypad_mode = false;
+static int g_debug_out_fd = -1;
  
 static std::string trim_ascii_ws(const std::string& s) {
     size_t b = 0;
@@ -269,6 +271,13 @@ int main(int argc, char** argv) {
         std::cerr << "Error: lite-tty-ime is already running in this terminal." << std::endl;
         return 1;
     }
+    const char* debug_out = getenv("LITE_TTY_IME_DEBUG_OUT");
+    if (debug_out && *debug_out) {
+        g_debug_out_fd = open(debug_out, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (g_debug_out_fd < 0) {
+            std::cerr << "Warning: cannot open debug output: " << debug_out << std::endl;
+        }
+    }
     init_logger();
     int rows = 0, cols = 0;
     get_terminal_size(rows, cols);
@@ -365,6 +374,11 @@ int main(int argc, char** argv) {
         if (FD_ISSET(g_master_fd, &readfds)) {
             ssize_t n = read(g_master_fd, buf, sizeof(buf));
             if (n <= 0) break;
+            // 调试：LITE_TTY_IME_DEBUG_OUT=<path> 时把子程序原始输出落盘，
+            // 用于定位 vterm 解析/渲染错位问题。
+            if (g_debug_out_fd >= 0) {
+                write(g_debug_out_fd, buf, (size_t)n);
+            }
             parser.feed(buf, (size_t)n);
         }
  
