@@ -25,6 +25,8 @@
 #include "status_bar.h"
 #include "util.h"
 
+#define LITE_TTY_IME_VERSION "0.1.0"
+
 static int g_master_fd = -1;
 static termios g_orig_termios{};
 static volatile sig_atomic_t g_winch_pending = 0;
@@ -96,10 +98,13 @@ static void load_config_file(const std::string& config_path, AppConfig& cfg) {
 
 static void print_help(const char* argv0) {
     std::cout
+        << "lite-tty-ime " << LITE_TTY_IME_VERSION << "\n"
+        << "\n"
         << "Usage: " << argv0 << " [options] [command...]\n"
         << "\n"
         << "Options:\n"
         << "  -h, --help            Show this help and exit\n"
+        << "  -v, --version         Show version and exit\n"
         << "  --config PATH         Config file path (default: ~/.lite-tty-ime/config)\n"
         << "  --no-config           Do not load config file\n"
         << "  --data-dir DIR        Dictionary directory (must contain: pinyin_map.txt, user_dict.txt, char_freq.txt)\n"
@@ -196,6 +201,10 @@ int main(int argc, char** argv) {
         std::string a = argv[i];
         if (a == "-h" || a == "--help") {
             print_help(argv[0]);
+            return 0;
+        }
+        if (a == "-v" || a == "--version") {
+            std::cout << "lite-tty-ime " << LITE_TTY_IME_VERSION << std::endl;
             return 0;
         }
         if (a == "--no-config") {
